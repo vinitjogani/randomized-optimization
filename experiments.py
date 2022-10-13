@@ -28,7 +28,6 @@ def vary_parameter(algo_cls, kwargs, key, values):
 
 
 def algo_by_params(algo_cls, kwargs, key, values):
-    algo_cls = HillClimbing
     readings = {}
     for prob_cls in PROBLEM_SIZES:
         best_values = []
@@ -100,4 +99,14 @@ if __name__ == "__main__":
         {"soft": True},
         "max_attempts",
         values=[20, 40, 60, 80, 100],
+    )
+
+    run_experiment(
+        "Simulated Annealing: temperature vs problem_size",
+        "Optimal temperature",
+        "annealing_temperature_by_size",
+        Annealing,
+        {"decay": 0.99, "min": 0.01, "max_attempts": 25},
+        "T",
+        values=[0.25, 0.5, 1, 1.5, 2, 3, 4],
     )
