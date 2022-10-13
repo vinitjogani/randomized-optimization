@@ -115,3 +115,13 @@ if __name__ == "__main__":
         "T",
         values=[0.25, 0.5, 1, 1.5, 2, 3, 4],
     )
+
+    run_experiment(
+        "Genetic Algorithm: population vs problem_size",
+        "Optimal temperature",
+        "ga_population_vs_size",
+        Genetic,
+        {"keep_pct": 0.5, "combine_fn": bitstrings.cut_combine},
+        "K",
+        values=[50, 100, 200, 300, 400],
+    )
