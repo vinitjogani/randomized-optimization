@@ -13,14 +13,17 @@ class Logger:
         self.fitness = []
         self.evaluations = []
         self.evals = 0
+        self.last_print = 0
 
     def log(self, step, fitness, evals):
         self.steps.append(step)
         self.fitness.append(fitness)
+        self.last_print += evals
         self.evals += evals
         self.evaluations.append(self.evals)
 
-        if len(self.steps) % 1000 == 0:
+        if self.last_print > 250_000:
+            self.last_print = 0
             print(
                 len(self.steps),
                 "\t",
@@ -65,43 +68,35 @@ class Algorithm:
 
 
 class HillClimbing(Algorithm):
+    def __init__(self, max_attempts, soft, problem):
+        super().__init__(problem)
+        self.max_attempts = max_attempts
+        self.soft = soft
+
     def step(self):
         attempts = 0
 
-        while attempts < 10:
+        while attempts < self.max_attempts:
             attempts += 1
             next_state = self.problem.sample_neighbor(self.x)
             next_fitness = self.problem.fitness(next_state)
 
-            if next_fitness > self.f:
+            if (next_fitness == self.f and self.soft) or (next_fitness > self.f):
                 x = next_state
                 f = next_fitness
                 break
 
-        if attempts == 10:
+        if attempts == self.max_attempts:
             # Local minima, random restart
             x = self.problem.sample()
             f = self.problem.fitness(x)
-
-        # neighbors = list(self.problem.neighbors(self.x))
-        # fs = list(map(self.problem.fitness, neighbors))
-        # best = np.max(fs)
-
-        # if best > self.f:
-        #     # Improvement
-        #     x = neighbors[np.argmax(fs)]
-        #     f = best
-        # else:
-        #     # Local minima, random restart
-        #     x = self.problem.sample()
-        #     f = self.problem.fitness(x)
 
         return x, f, attempts
 
 
 class Annealing(Algorithm):
-    def __init__(self, T, decay, min, max_attempts, *args):
-        super().__init__(*args)
+    def __init__(self, T, decay, min, max_attempts, problem):
+        super().__init__(problem)
         self.T = T
         self.decay = decay
         self.min = min
@@ -125,9 +120,10 @@ class Annealing(Algorithm):
 
 
 class Genetic(Algorithm):
-    def __init__(self, K, *args):
-        super().__init__(*args)
-        assert K % 2 == 0
+    def __init__(self, K, keep_pct, combine_fn, problem):
+        super().__init__(problem)
+        self.keep_pct = keep_pct
+        self.combine_fn = combine_fn
         self.P = [bitstrings.random_generate() for _ in range(K)]
         self.F = list(map(self.problem.fitness, self.P))
         self.logger.evals += len(self.F) - 1
@@ -135,31 +131,33 @@ class Genetic(Algorithm):
     def step(self):
         P = np.array(self.P)
         F = np.array(self.F)
-        n = len(P) // 2
+        n = int(len(P) * self.keep_pct)
+        N = len(P) - n
 
         top = np.argsort(-F)[:n]
         P = list(P[top])
         F = list(F[top])
 
-        new = []
-        for _ in range(n):
-            new.append(
-                bitstrings.combine(
-                    np.random.choice(P),
-                    np.random.choice(P),
-                )
+        new = [
+            self.combine_fn(
+                np.random.choice(P),
+                np.random.choice(P),
             )
+            for _ in range(N)
+        ]
         P.extend(new)
         F.extend(map(self.problem.fitness, new))
         self.P, self.F = P, F
 
-        return P[np.argmax(F)], np.max(F), len(new)
+        best = np.argmax(F)
+        return P[best], F[best], N
 
 
 class Mimic(Algorithm):
-    def __init__(self, K, clip, *args):
-        super().__init__(*args)
+    def __init__(self, K, keep_pct, clip, problem):
+        super().__init__(problem)
         self.K = K
+        self.keep_pct = keep_pct
         self.clip = clip
 
         # Initialize uniform distribution
@@ -169,6 +167,16 @@ class Mimic(Algorithm):
         for i in range(N):
             self.prob[i] = 0.5
             self.parent[i] = None
+
+    def print_tree(self, k=0, tab=0):
+        if tab == 0:
+            self.children = defaultdict(list)
+            for k_, v in self.parent.items():
+                self.children[v].append(k_)
+
+        print("-" * tab + f"{k}")
+        for x in self.children[k]:
+            self.print_tree(x, tab + 1)
 
     def sample(self):
         samples = {}
@@ -197,9 +205,9 @@ class Mimic(Algorithm):
         F = np.array(list(map(self.problem.fitness, P)))
         return P, F
 
-    def keep_top(self, P, F, pct=0.5):
+    def keep_top(self, P, F):
         N = len(P)
-        keep = int(N * pct)
+        keep = int(N * self.keep_pct)
         best = np.argsort(-F)[:keep]
         return P[best], F[best]
 
@@ -297,40 +305,40 @@ class Mimic(Algorithm):
 if __name__ == "__main__":
     np.random.seed(1234)
     random.seed(1234)
-    problem = FlipFlop()
+    problem = TreasureHunt()
 
-    n_evals = 1_200_000
+    n_evals = 1_200_00
 
     print("Hill Climbing")
     np.random.seed(0)
     random.seed(42)
-    algo = HillClimbing(problem)
+    algo = HillClimbing(100, True, problem)
     x_best, f_best, hc = algo.run(n_evals, problem.max())
-    print(x_best, f_best)
+    print(x_best, f_best, hc.evals)
     print()
 
     print("Annealing")
     np.random.seed(0)
     random.seed(42)
-    algo = Annealing(1, 0.99, 0.01, 100, problem)
+    algo = Annealing(1, 0.99, 0.05, 100, problem)
     x_best, f_best, annealing = algo.run(n_evals, problem.max())
-    print(x_best, f_best)
+    print(x_best, f_best, annealing.evals)
     print()
 
     print("Genetic")
     np.random.seed(0)
     random.seed(42)
-    algo = Genetic(100, problem)
+    algo = Genetic(50, 0.2, bitstrings.splice_combine, problem)
     x_best, f_best, genetic = algo.run(n_evals, problem.max())
-    print(x_best, f_best)
+    print(x_best, f_best, genetic.evals)
     print()
 
     print("MIMIC")
     np.random.seed(0)
     random.seed(42)
-    algo = Mimic(200, 0.005, problem)
+    algo = Mimic(200, 0.25, 0.01, problem)
     x_best, f_best, mimic = algo.run(n_evals, problem.max())
-    print(x_best, f_best)
+    print(x_best, f_best, mimic.evals)
     print()
 
     plt.figure()

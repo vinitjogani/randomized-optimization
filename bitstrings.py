@@ -2,7 +2,7 @@ import random
 import numpy as np
 
 
-def random_generate(length=32):
+def random_generate(length=1024):
     return "".join([str(random.randint(0, 1)) for _ in range(length)])
 
 
@@ -24,7 +24,7 @@ def neighbors(x):
         yield "".join(y)
 
 
-def combine(x1, x2, p=0.1):
+def splice_combine(x1, x2, p=0.1):
     def combine_bit(x1, x2):
         if np.random.random() < p:
             return str(random.randint(0, 1))
@@ -35,3 +35,11 @@ def combine(x1, x2, p=0.1):
         return x2
 
     return "".join([combine_bit(b1, b2) for b1, b2 in zip(x1, x2)])
+
+
+def cut_combine(x1, x2, p=0.1):
+    cut = np.random.randint(len(x1) - 1)
+    x = list(x1[:cut] + x2[cut:])
+    for i in np.where(np.random.random(size=len(x)) < p)[0]:
+        x[i] = str(1 - int(x[i]))
+    return "".join(x)
