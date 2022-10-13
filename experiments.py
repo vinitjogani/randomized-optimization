@@ -21,8 +21,10 @@ def vary_parameter(algo_cls, kwargs, key, values):
         algo = algo_cls(**kwargs, **{key: v})
         best = kwargs["problem"].max()
         _, f_best, curve = algo.run(max_steps, best)
-        readings.append(curve.evals)
-    return readings
+        f_best = (f_best / best) * 100
+        readings.append((-f_best, curve.evals, v))
+    readings.sort()
+    return readings[0]
 
 
 def algo_by_params(algo_cls, kwargs, key, values):
@@ -34,10 +36,9 @@ def algo_by_params(algo_cls, kwargs, key, values):
         for size in PROBLEM_SIZES[prob_cls]:
             prob = prob_cls(size)
             kwargs.update({"problem": prob})
-            r = vary_parameter(algo_cls, kwargs, key, values)
-            best = np.argmin(r)
-            best_values.append(values[best])
-            best_fitness.append(r[best])
+            f_best, _, value = vary_parameter(algo_cls, kwargs, key, values)
+            best_values.append(value)
+            best_fitness.append(-f_best)
 
         readings[prob_cls.__name__] = (
             PROBLEM_SIZES[prob_cls],
@@ -72,7 +73,7 @@ def run_experiment(title, ylabel, key, *args, **kwargs):
 
     fig, ax = plot_all(readings)
     ax[0, 0].set_ylabel(ylabel)
-    ax[1, 0].set_ylabel("Fitness")
+    ax[1, 0].set_ylabel("Fitness (%)")
     ax[0, 1].set_title(title)
     fig.tight_layout()
     fig.savefig(path + ".png")
