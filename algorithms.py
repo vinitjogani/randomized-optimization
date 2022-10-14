@@ -124,7 +124,7 @@ class Genetic(Algorithm):
         super().__init__(problem)
         self.keep_pct = keep_pct
         self.combine_fn = combine_fn
-        self.P = [bitstrings.random_generate() for _ in range(K)]
+        self.P = [problem.sample() for _ in range(K)]
         self.F = list(map(self.problem.fitness, self.P))
         self.logger.evals += len(self.F) - 1
 
@@ -161,7 +161,7 @@ class Mimic(Algorithm):
         self.clip = clip
 
         # Initialize uniform distribution
-        N = len(bitstrings.random_generate())
+        N = len(problem.sample())
         self.prob = {}
         self.parent = {}
         for i in range(N):
@@ -240,6 +240,8 @@ class Mimic(Algorithm):
                 if j > i:
                     continue
                 mi = self.mutual_information(P[:, i], P[:, j])
+                if mi == 1:
+                    break
                 I.append((-mi, (i, j)))
         return P, I
 
@@ -305,16 +307,16 @@ class Mimic(Algorithm):
 if __name__ == "__main__":
     np.random.seed(1234)
     random.seed(1234)
-    problem = TreasureHunt()
+    problem = TreasureHunt(512)
 
-    n_evals = 1_200_00
+    n_evals = 1_200_0
 
     print("Hill Climbing")
     np.random.seed(0)
     random.seed(42)
     algo = HillClimbing(100, True, problem)
     x_best, f_best, hc = algo.run(n_evals, problem.max())
-    print(x_best, f_best, hc.evals)
+    print(x_best, f_best / problem.max(), hc.evals)
     print()
 
     print("Annealing")
@@ -322,15 +324,15 @@ if __name__ == "__main__":
     random.seed(42)
     algo = Annealing(1, 0.99, 0.05, 100, problem)
     x_best, f_best, annealing = algo.run(n_evals, problem.max())
-    print(x_best, f_best, annealing.evals)
+    print(x_best, f_best / problem.max(), annealing.evals)
     print()
 
     print("Genetic")
     np.random.seed(0)
     random.seed(42)
-    algo = Genetic(50, 0.2, bitstrings.splice_combine, problem)
+    algo = Genetic(10, 0.4, bitstrings.cut_combine, problem)
     x_best, f_best, genetic = algo.run(n_evals, problem.max())
-    print(x_best, f_best, genetic.evals)
+    print(x_best, f_best / problem.max(), genetic.evals)
     print()
 
     print("MIMIC")
@@ -338,7 +340,7 @@ if __name__ == "__main__":
     random.seed(42)
     algo = Mimic(200, 0.25, 0.01, problem)
     x_best, f_best, mimic = algo.run(n_evals, problem.max())
-    print(x_best, f_best, mimic.evals)
+    print(x_best, f_best / problem.max(), mimic.evals)
     print()
 
     plt.figure()

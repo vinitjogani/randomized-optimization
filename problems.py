@@ -1,7 +1,4 @@
 from math import ceil
-import random
-
-from regex import D
 import bitstrings
 import numpy as np
 import mlrose_hiive as mlrose
@@ -24,15 +21,18 @@ class BitStringProblem:
         return bitstrings.random_generate(self.k)
 
 
-class Reverse(BitStringProblem):
+class SixPeaks(BitStringProblem):
+    def __init__(self, k):
+        super().__init__(k)
+        self.fn = mlrose.SixPeaks()
+
     def max(self):
-        return len(self.sample())
+        n = len(self.sample())
+        t = ceil(n * 0.1)
+        return 2 * n - (t + 1)
 
     def fitness(self, x):
-        out = 0
-        for i in range(len(x)):
-            out += int(x[i] == x[-i - 1])
-        return out
+        return self.fn.evaluate(np.array(list(map(int, list(x)))))
 
 
 class TreasureHunt(BitStringProblem):
@@ -55,6 +55,10 @@ class TreasureHunt(BitStringProblem):
 
 
 class FlipFlop(BitStringProblem):
+    def __init__(self, k):
+        super().__init__(k)
+        self.fn = mlrose.SixPeaks()
+
     def fitness(self, x):
         out = 0
         for i, c in enumerate(x[1:]):

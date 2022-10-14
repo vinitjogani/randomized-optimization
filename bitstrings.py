@@ -2,7 +2,7 @@ import random
 import numpy as np
 
 
-def random_generate(length=1024):
+def random_generate(length):
     return "".join([str(random.randint(0, 1)) for _ in range(length)])
 
 
