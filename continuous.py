@@ -40,7 +40,7 @@ if __name__ == "__main__":
             X_train,
             y_train,
             "restarts",
-            [1, 2, 5, 10],
+            [5, 10, 15, 20],
             problem_size,
         )
 
@@ -50,10 +50,10 @@ if __name__ == "__main__":
             y_train,
             "schedule",
             [
-                mlrose.GeomDecay(0.5),
-                mlrose.GeomDecay(1),
                 mlrose.GeomDecay(2),
-                mlrose.GeomDecay(3),
+                mlrose.GeomDecay(4),
+                mlrose.GeomDecay(6),
+                mlrose.GeomDecay(8),
             ],
             problem_size,
         )
