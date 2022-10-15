@@ -20,7 +20,7 @@ def vary_parameter(algo_cls, kwargs, key, values):
 
     def test_parameter(v):
         np.random.seed(0)
-        random.seed(42)
+        random.seed(43)
         algo = algo_cls(**kwargs, **{key: v})
         _, f_best, curve = algo.run(max_steps, best)
         return (-f_best, curve.evals, v)

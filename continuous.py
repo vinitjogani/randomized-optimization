@@ -9,6 +9,14 @@ import glob
 import matplotlib.pyplot as plt
 
 
+mapper = {
+    "random_hill_climb": "RHC",
+    "genetic_alg": "GA",
+    "simulated_annealing": "SA",
+    "gradient_descent": "GD",
+}
+
+
 def plot_key(algo, key, ax, evals=False):
     nets = glob.glob(f"neuralnets/1.0_{algo}_{key}_*")
     best = None
@@ -68,8 +76,11 @@ def train_neuralnet(algo, X_train, y_train, key, values):
 
 def eval_neuralnet(dataset, kwargs):
     (X_train, y_train), (X_test, y_test) = dataset
-    out = {}
-    for problem_size in [0.2, 0.4, 0.6, 0.8]:
+    out = json.load(open("readings/cont.json"))[mapper[kwargs["algorithm"]]]
+    for problem_size in [0.2, 0.4, 0.6, 0.8, 1.0]:
+        if str(problem_size) in out:
+            continue
+        print(problem_size, kwargs["algorithm"])
         N = X_train.shape[0]
         sample = np.random.randint(0, N, size=int(N * problem_size))
         X, y = X_train[sample], y_train.iloc[sample]
@@ -95,7 +106,9 @@ def eval_neuralnet(dataset, kwargs):
 
         nn.predict(X_test)
         p = nn.predicted_probs.reshape(-1)
-        test_loss = (y_test * np.log(p) + (1 - y_test) * np.log(p)).mean()
+        test_loss = (
+            y_test * np.log(p + 1e-5) + (1 - y_test) * np.log(1 - p + 1e-5)
+        ).mean()
         test_auprc = pr_auc_score(y_test, p)
 
         out[problem_size] = {
@@ -105,6 +118,7 @@ def eval_neuralnet(dataset, kwargs):
             "train_auprc": train_auprc,
             "test_auprc": test_auprc,
         }
+    print(out)
     return out
 
 
@@ -144,47 +158,82 @@ def plot_iters_and_evals():
     fig.savefig("readings/cont_evals.png")
 
 
+def plot_learning_curves():
+
+    data = json.load(open("readings/cont.json"))
+
+    def plot_data(key, ax):
+        for algo in data:
+            x = list(map(float, data[algo].keys()))
+            y = list(map(lambda i: i[key], data[algo].values()))
+            ax.plot(x, y, label=algo)
+        ax.legend()
+
+    fig, axs = plt.subplots(ncols=5, figsize=(15, 3))
+
+    for ax in axs:
+        ax.set_xlabel("Problem Size")
+
+    plot_data("train_time", axs[0])
+    axs[0].set_ylabel("Training time (s)")
+
+    plot_data("train_loss", axs[1])
+    axs[1].set_ylabel("Training loss")
+
+    plot_data("train_auprc", axs[2])
+    axs[2].set_ylabel("Training AUPRC")
+
+    plot_data("test_loss", axs[3])
+    axs[3].set_ylabel("Testing Loss")
+
+    plot_data("test_auprc", axs[4])
+    axs[4].set_ylabel("Testing AUPRC")
+
+    fig.tight_layout()
+    fig.savefig("readings/cont.png")
+
+
 if __name__ == "__main__":
     (X_train, y_train), (X_test, y_test) = load_term_deposits()
 
-    # train_neuralnet(
-    #     "random_hill_climb",
-    #     X_train,
-    #     y_train,
-    #     "restarts",
-    #     [5, 10, 15, 20],
-    # )
+    train_neuralnet(
+        "random_hill_climb",
+        X_train,
+        y_train,
+        "restarts",
+        [5, 10, 15, 20],
+    )
 
-    # train_neuralnet(
-    #     "simulated_annealing",
-    #     X_train,
-    #     y_train,
-    #     "schedule",
-    #     [
-    #         mlrose.GeomDecay(2),
-    #         mlrose.GeomDecay(4),
-    #         mlrose.GeomDecay(6),
-    #         mlrose.GeomDecay(8),
-    #     ],
-    # )
+    train_neuralnet(
+        "simulated_annealing",
+        X_train,
+        y_train,
+        "schedule",
+        [
+            mlrose.GeomDecay(2),
+            mlrose.GeomDecay(4),
+            mlrose.GeomDecay(6),
+            mlrose.GeomDecay(8),
+        ],
+    )
 
-    # train_neuralnet(
-    #     "genetic_alg",
-    #     X_train,
-    #     y_train,
-    #     "pop_size",
-    #     [20, 50, 100, 200],
-    # )
+    train_neuralnet(
+        "genetic_alg",
+        X_train,
+        y_train,
+        "pop_size",
+        [20, 50, 100, 200],
+    )
 
-    # train_neuralnet(
-    #     "gradient_descent",
-    #     X_train,
-    #     y_train,
-    #     "pop_size",
-    #     [10],
-    # )
+    train_neuralnet(
+        "gradient_descent",
+        X_train,
+        y_train,
+        "pop_size",
+        [10],
+    )
 
-    # plot_iters_and_evals()
+    plot_iters_and_evals()
 
     dataset = load_term_deposits()
     outputs = {
@@ -206,3 +255,5 @@ if __name__ == "__main__":
         ),
     }
     json.dump(outputs, open("readings/cont.json", "w"))
+
+    plot_learning_curves()
