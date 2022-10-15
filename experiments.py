@@ -194,15 +194,15 @@ if __name__ == "__main__":
     )
 
     run_experiment_with_groups(
-        "Clipped MIMIC: population vs problem_size",
+        "MIMIC: population vs problem_size",
         "Optimal population size",
         "mimic_population_vs_size",
         algo_cls=Mimic,
         group_key="keep_pct",
-        group_values=[0.2, 0.4, 0.6],
+        group_values=[0.25, 0.4, 0.5],
         kwargs={"clip": 0},
         key="K",
-        values=[100, 200, 300, 400],
+        values=[200, 300, 400, 500, 600],
     )
 
     run_experiment_with_groups(
@@ -211,8 +211,8 @@ if __name__ == "__main__":
         "clipped_mimic_population_vs_size",
         algo_cls=Mimic,
         group_key="keep_pct",
-        group_values=[0.2, 0.4, 0.6],
-        kwargs={"clip": 0.01},
+        group_values=[0.25, 0.4, 0.5],
+        kwargs={"clip": 0.02},
         key="K",
-        values=[100, 200, 300, 400],
+        values=[200, 300, 400, 500, 600],
     )

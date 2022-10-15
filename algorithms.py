@@ -22,7 +22,7 @@ class Logger:
         self.evals += evals
         self.evaluations.append(self.evals)
 
-        if self.last_print > 250_000:
+        if self.last_print > 25_00:
             self.last_print = 0
             print(
                 len(self.steps),
@@ -240,8 +240,6 @@ class Mimic(Algorithm):
                 if j > i:
                     continue
                 mi = self.mutual_information(P[:, i], P[:, j])
-                if mi == 1:
-                    break
                 I.append((-mi, (i, j)))
         return P, I
 
@@ -307,9 +305,9 @@ class Mimic(Algorithm):
 if __name__ == "__main__":
     np.random.seed(1234)
     random.seed(1234)
-    problem = TreasureHunt(512)
+    problem = FlipFlop(60)
 
-    n_evals = 1_200_0
+    n_evals = 1_500_0
 
     print("Hill Climbing")
     np.random.seed(0)
@@ -338,7 +336,7 @@ if __name__ == "__main__":
     print("MIMIC")
     np.random.seed(0)
     random.seed(42)
-    algo = Mimic(200, 0.25, 0.01, problem)
+    algo = Mimic(500, 0.25, 0.01, problem)
     x_best, f_best, mimic = algo.run(n_evals, problem.max())
     print(x_best, f_best / problem.max(), mimic.evals)
     print()
