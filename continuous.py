@@ -8,7 +8,7 @@ import time
 def train_neuralnet(algo, X_train, y_train, key, values, problem_size):
     N = X_train.shape[0]
     sample = np.random.randint(0, N, size=int(N * problem_size))
-    X_train, y_train = X_train[sample], y_train[sample]
+    X_train, y_train = X_train[sample], y_train.iloc[sample]
     for v in values:
         nn = mlrose.NeuralNetwork(
             hidden_nodes=(256, 128),
