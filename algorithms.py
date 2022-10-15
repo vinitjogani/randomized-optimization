@@ -5,6 +5,7 @@ import random
 import matplotlib.pyplot as plt
 import unionfind
 from collections import defaultdict
+import time
 
 
 class Logger:
@@ -22,7 +23,7 @@ class Logger:
         self.evals += evals
         self.evaluations.append(self.evals)
 
-        if self.last_print > 25_00:
+        if self.last_print > 25_0000:
             self.last_print = 0
             print(
                 len(self.steps),
@@ -49,6 +50,7 @@ class Algorithm:
 
     def run(self, n_evals, stop_at=None):
         step = 0
+        self.logger.start = time.time()
         while n_evals >= 0:
             step += 1
             self.x, self.f, evals = self.step()
@@ -61,6 +63,7 @@ class Algorithm:
 
             if evals == 0 or self.f_best == stop_at:
                 break
+        self.logger.elapsed = time.time() - self.logger.start
         return self.x_best, self.f_best, self.logger
 
     def step(self):
